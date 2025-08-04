@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hippos Mock Dashboard</title>
+</head>
+<body>
+  <h1>Live Biomechanical Data</h1>
+  <div id="data"></div>
+
+  <script>
+    async function fetchData() {
+      const res = await fetch("http://localhost:5050/latest");
+      const data = await res.json();
+      document.getElementById("data").innerHTML = `
+        <p><b>Flexion:</b> ${data.flexion}°</p>
+        <p><b>Valgus:</b> ${data.valgus}°</p>
+        <p><b>Rotation:</b> ${data.rotation}°</p>
+        <p><b>Risk Score:</b> ${data.risk_score === 1 ? "⚠️ High Risk" : "✅ Normal"}</p>
+      `;
+    }
+
+    setInterval(fetchData, 1000);
+  </script>
+</body>
+</html>
