@@ -1,25 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>Hippos Mock Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h2 { margin-top: 30px; }
+    pre {
+      background: #f4f4f4;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
 </head>
 <body>
-  <h1>Live Biomechanical Data</h1>
-  <div id="data"></div>
+  <h1>Hippos Knee Data Dashboard</h1>
+
+  <h2>Processed Data (Averaged every 0.5s)</h2>
+  <pre id="processed">Loading...</pre>
+
+  <h2>Latest Raw Data (Rolling)</h2>
+  <pre id="raw">Loading...</pre>
 
   <script>
     async function fetchData() {
-      const res = await fetch("http://localhost:5050/latest");
-      const data = await res.json();
-      document.getElementById("data").innerHTML = `
-        <p><b>Flexion:</b> ${data.flexion}°</p>
-        <p><b>Valgus:</b> ${data.valgus}°</p>
-        <p><b>Rotation:</b> ${data.rotation}°</p>
-        <p><b>Risk Score:</b> ${data.risk_score === 1 ? "⚠️ High Risk" : "✅ Normal"}</p>
-      `;
+      try {
+        // Get processed data
+        const processedRes = await fetch("http://localhost:5050/latest_processed");
+        const processedData = await processedRes.json();
+        document.getElementById("processed").textContent = JSON.stringify(processedData, null, 2);
+
+        // Get raw data
+        const rawRes = await fetch("http://localhost:5050/latest_raw");
+        const rawData = await rawRes.json();
+        document.getElementById("raw").textContent = JSON.stringify(rawData, null, 2);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      }
     }
 
-    setInterval(fetchData, 1000);
+    // Refresh every 500ms
+    setInterval(fetchData, 500);
+    fetchData();
   </script>
 </body>
 </html>
