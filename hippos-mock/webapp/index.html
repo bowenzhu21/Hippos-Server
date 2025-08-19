@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <meta charset="UTF-8">
   <title>Hippos Mock Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
+    body { font-family: Arial, sans-serif; margin: 20px; background-color:rgb(199, 233, 255);}
     h2 { margin-top: 30px; }
     pre {
       background: #f4f4f4;
@@ -15,34 +16,126 @@
   </style>
 </head>
 <body>
-  <h1>Hippos Knee Data Dashboard</h1>
+  <h1>Knee Brace Data Dashboard</h1>
 
-  <h2>Processed Data (Averaged every 0.5s)</h2>
+  <h2>Processed Data</h2>
   <pre id="processed">Loading...</pre>
 
-  <h2>Latest Raw Data (Rolling)</h2>
+  <h2>Live Data Progress 1</h2>
+  <canvas id="p1Chart" width="600" height="200"></canvas>
+
+  <h2>Live Data Progress 2</h2>
+  <canvas id="p2Chart" width="600" height="200"></canvas>
+
+  <h2>Raw Data (For Ursula)</h2>
   <pre id="raw">Loading...</pre>
 
-  <script>
-    async function fetchData() {
-      try {
-        // Get processed data
-        const processedRes = await fetch("http://localhost:5050/latest_processed");
-        const processedData = await processedRes.json();
-        document.getElementById("processed").textContent = JSON.stringify(processedData, null, 2);
+<script>
+  const p1Ctx = document.getElementById("p1Chart").getContext("2d");
+  const p2Ctx = document.getElementById("p2Chart").getContext("2d");
 
-        // Get raw data
-        const rawRes = await fetch("http://localhost:5050/latest_raw");
-        const rawData = await rawRes.json();
-        document.getElementById("raw").textContent = JSON.stringify(rawData, null, 2);
-      } catch (err) {
-        console.error("Error fetching data:", err);
+  const p1Chart = new Chart(p1Ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'P1 Avg',
+        data: [],
+        borderColor: 'rgba(255, 99, 132, 1)',
+        fill: false,
+        tension: 0.3
+      }]
+    },
+    options: {
+      animation: false,
+      scales: {
+        x: { title: { display: true, text: 'Time (s)' } },
+        y: { title: { display: true, text: 'Value' }, beginAtZero: true }
       }
     }
+  });
 
-    // Refresh every 500ms
+  const p2Chart = new Chart(p2Ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'P2 Avg',
+        data: [],
+        borderColor: 'rgba(54, 162, 235, 1)',
+        fill: false,
+        tension: 0.3
+      }]
+    },
+    options: {
+      animation: false,
+      scales: {
+        x: { title: { display: true, text: 'Time (s)' } },
+        y: { title: { display: true, text: 'Value' }, beginAtZero: true }
+      }
+    }
+  });
+
+  let startTime = Date.now();
+  let lastProcessedTimestamp = null;
+
+  // 📥 Load historical data
+  async function loadHistory() {
+    const res = await fetch("http://localhost:5050/history");
+    const data = await res.json();
+
+    if (data.length > 0) {
+      const baseTime = data[0].timestamp;
+      startTime = baseTime * 1000; // adjust startTime for consistent X axis
+
+      for (const entry of data) {
+        const relTime = ((entry.timestamp - baseTime)).toFixed(1); // seconds since first point
+        p1Chart.data.labels.push(relTime);
+        p1Chart.data.datasets[0].data.push(entry.p1_avg);
+        p2Chart.data.labels.push(relTime);
+        p2Chart.data.datasets[0].data.push(entry.p2_avg);
+        lastProcessedTimestamp = entry.timestamp;
+      }
+
+      p1Chart.update();
+      p2Chart.update();
+    }
+  }
+
+  // 🔁 Fetch and append new data
+  async function fetchData() {
+    try {
+      const processedRes = await fetch("http://localhost:5050/latest_processed");
+      const processedData = await processedRes.json();
+      document.getElementById("processed").textContent = JSON.stringify(processedData, null, 2);
+
+      const rawRes = await fetch("http://localhost:5050/latest_raw");
+      const rawData = await rawRes.json();
+      document.getElementById("raw").textContent = JSON.stringify(rawData, null, 2);
+
+      // Add new data only if it's new
+      if (processedData.timestamp && processedData.timestamp !== lastProcessedTimestamp) {
+        lastProcessedTimestamp = processedData.timestamp;
+
+        const relTime = ((processedData.timestamp * 1000 - startTime) / 1000).toFixed(1);
+        p1Chart.data.labels.push(relTime);
+        p1Chart.data.datasets[0].data.push(processedData.p1_avg);
+        p2Chart.data.labels.push(relTime);
+        p2Chart.data.datasets[0].data.push(processedData.p2_avg);
+
+        p1Chart.update();
+        p2Chart.update();
+      }
+    } catch (err) {
+      console.error("Error fetching data:", err);
+    }
+  }
+
+  // 🔃 Init
+  loadHistory().then(() => {
     setInterval(fetchData, 500);
     fetchData();
-  </script>
+  });
+</script>
 </body>
 </html>

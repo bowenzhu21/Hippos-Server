@@ -26,4 +26,4 @@ while True:
     except Exception as e:
         print("[ML MOCK] Error:", e)
 
-    time.sleep(0.02)
+    time.sleep(0.5) #Change to 0.02 when done testing
