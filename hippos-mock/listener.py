@@ -8,10 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Globals
-latest_processed = {"p1": 0, "p2": 0}
-processed_sum = {"p1": 0, "p2": 0}
-processed_count = 0
-last_avg_time = time.time()
+latest_processed = {"combined_average": 0, "timestamp": 0}
 latest_raw = {}
 
 # File paths
@@ -25,7 +22,7 @@ os.makedirs("data", exist_ok=True)
 if not os.path.exists(PROCESSED_FILE):
     with open(PROCESSED_FILE, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["timestamp", "p1_avg", "p2_avg"])
+        writer.writerow(["timestamp", "combined_average"])
 
 if not os.path.exists(RAW_FILE):
     with open(RAW_FILE, "w", newline="") as f:
@@ -52,32 +49,22 @@ def upload_raw():
 
 @app.route("/upload_processed", methods=["POST"])
 def upload_processed():
-    global latest_processed, processed_sum, processed_count, last_avg_time
+    global latest_processed
     data = request.json
-    processed_sum["p1"] += data["p1"]
-    processed_sum["p2"] += data["p2"]
-    processed_count += 1
+    combined_average = data.get("combined_average")
+    timestamp = data.get("timestamp", time.time())
 
-    if time.time() - last_avg_time >= 0.5:
-        avg_p1 = processed_sum["p1"] // processed_count
-        avg_p2 = processed_sum["p2"] // processed_count
-        timestamp = time.time()
-
+    if combined_average is not None:
         latest_processed = {
-            "p1_avg": avg_p1,
-            "p2_avg": avg_p2,
+            "combined_average": combined_average,
             "timestamp": timestamp
         }
-
         with open(PROCESSED_FILE, "a", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow([timestamp, avg_p1, avg_p2])
-
-        processed_sum = {"p1": 0, "p2": 0}
-        processed_count = 0
-        last_avg_time = time.time()
-
-    return jsonify({"status": "processed received"})
+            writer.writerow([timestamp, combined_average])
+        return jsonify({"status": "processed received"})
+    else:
+        return jsonify({"status": "error", "reason": "Missing combined_average"}), 400
 
 
 @app.route("/latest_processed", methods=["GET"])
@@ -99,8 +86,7 @@ def get_history():
             for row in reader:
                 history.append({
                     "timestamp": float(row["timestamp"]),
-                    "p1_avg": int(row["p1_avg"]),
-                    "p2_avg": int(row["p2_avg"])
+                    "combined_average": float(row["combined_average"])
                 })
     return jsonify(history)
 
