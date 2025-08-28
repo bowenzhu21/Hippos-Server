@@ -55,9 +55,9 @@ export default function KneeModel3D({ angleDeg = 0 }) {
     scene.add(grid);
 
     // Hippos-ish materials: charcoal blue + lavender + mint accent
-    const femurMat   = new THREE.MeshStandardMaterial({ color: "#6D6A8E" }); // lavender-slate
-    const tibiaMat   = new THREE.MeshStandardMaterial({ color: "#2F3A4A" }); // charcoal blue
-    const patellaMat = new THREE.MeshStandardMaterial({ color: "#B7B3D9" }); // lavender
+    const femurMat   = new THREE.MeshStandardMaterial({ color: "#282828" }); // lavender-slate
+    const tibiaMat   = new THREE.MeshStandardMaterial({ color: "#282828" }); // charcoal blue
+    const patellaMat = new THREE.MeshStandardMaterial({ color: "#DA9100" }); //
 
     const femurGeo = new THREE.BoxGeometry(1, 4, 1);
     const femur = new THREE.Mesh(femurGeo, femurMat);

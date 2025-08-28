@@ -179,12 +179,25 @@ const Dashboard = () => {
     >
       <VStack spacing={8} align="start">
 
-        <Heading size="lg" color={palette.charcoal}>
+        <Heading
+          size="lg"
+          color={palette.charcoal}
+          w="100%"
+          textAlign="center"
+          mb={6} // <-- Add margin below the title
+        >
           Knee Brace Data Dashboard
         </Heading>
 
         {/* Knee Model */}
-        <Box w="100%">
+        <Box
+          w="100%"
+          borderRadius="2xl"
+          border={`2px solid ${palette.border}`}
+          boxShadow="md"
+          p={4}
+          bg={palette.white}
+        >
           <Heading size="md" mb={3} color={palette.charcoal}>
             3D Knee Model
           </Heading>
@@ -194,11 +207,12 @@ const Dashboard = () => {
         {/* Processed JSON */}
         <Box
           w="100%"
+          borderRadius="2xl"
+          border={`2px solid ${palette.border}`}
+          boxShadow="md"
           p={0}
-          borderRadius="lg"
           sx={{
             background: `linear-gradient(180deg, ${palette.cardFrom} 0%, ${palette.cardTo} 100%)`,
-            border: `1px solid ${palette.border}`,
           }}
         >
           <Heading size="md" p={4} color={palette.charcoal}>
@@ -208,7 +222,7 @@ const Dashboard = () => {
             p={4}
             w="100%"
             display="block"
-            borderRadius="0 0 12px 12px"
+            borderRadius="0 0 20px 20px"
             whiteSpace="pre-wrap"
             sx={{
               bg: "#22262A",
@@ -223,17 +237,18 @@ const Dashboard = () => {
         {/* Chart */}
         <Box
           w="100%"
+          borderRadius="2xl"
+          border={`2px solid ${palette.border}`}
+          boxShadow="md"
           p={0}
-          borderRadius="lg"
           sx={{
             background: `linear-gradient(180deg, ${palette.cardFrom} 0%, ${palette.cardTo} 100%)`,
-            border: `1px solid ${palette.border}`,
           }}
         >
           <Heading size="md" p={4} color={palette.charcoal}>
             Knee Angle Live Graph
           </Heading>
-          <Box h="260px" p={3} bg={palette.white} borderRadius="0 0 12px 12px">
+          <Box h="260px" p={3} bg={palette.white} borderRadius="0 0 20px 20px">
             <canvas ref={chartRef}></canvas>
           </Box>
         </Box>
@@ -241,11 +256,12 @@ const Dashboard = () => {
         {/* Raw JSON */}
         <Box
           w="100%"
+          borderRadius="2xl"
+          border={`2px solid ${palette.border}`}
+          boxShadow="md"
           p={0}
-          borderRadius="lg"
           sx={{
             background: `linear-gradient(180deg, ${palette.cardFrom} 0%, ${palette.cardTo} 100%)`,
-            border: `1px solid ${palette.border}`,
           }}
         >
           {/*
@@ -256,7 +272,7 @@ const Dashboard = () => {
             p={4}
             w="100%"
             display="block"
-            borderRadius="0 0 12px 12px"
+            borderRadius="0 0 20px 20px"
             whiteSpace="pre-wrap"
             sx={{
               bg: "#22262A",
