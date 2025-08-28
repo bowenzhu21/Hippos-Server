@@ -3,9 +3,8 @@ import * as THREE from "three";
 
 export default function KneeModel3D({ angleDeg = 0 }) {
   const mountRef = useRef(null);
-  const angleRef = useRef(angleDeg); // <-- store latest angleDeg
+  const angleRef = useRef(angleDeg);
 
-  // Always keep angleRef up to date with prop
   useEffect(() => {
     angleRef.current = angleDeg;
   }, [angleDeg]);
@@ -17,6 +16,7 @@ export default function KneeModel3D({ angleDeg = 0 }) {
     femur: null,
     tibiaPivot: null,
     tibia: null,
+    patella: null,
     currentAngle: 0,
     rafId: null,
   });
@@ -29,7 +29,8 @@ export default function KneeModel3D({ angleDeg = 0 }) {
     const HEIGHT = mountEl.clientHeight || 300;
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf0f4ff);
+    // Light grey background to match cards
+    scene.background = new THREE.Color("#EEF0F5");
 
     const camera = new THREE.PerspectiveCamera(45, WIDTH / HEIGHT, 0.1, 100);
     camera.position.set(6, 4, 12);
@@ -40,7 +41,8 @@ export default function KneeModel3D({ angleDeg = 0 }) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     mountEl.appendChild(renderer.domElement);
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9);
+    // Softer lights for the muted palette
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x8e9aaf, 0.9);
     hemi.position.set(0, 20, 0);
     scene.add(hemi);
 
@@ -48,12 +50,14 @@ export default function KneeModel3D({ angleDeg = 0 }) {
     dir.position.set(5, 10, 7);
     scene.add(dir);
 
-    const grid = new THREE.GridHelper(20, 20, 0xcccccc, 0xeeeeee);
+    const grid = new THREE.GridHelper(20, 20, 0xD6D9E0, 0xE6E9EF);
     grid.position.y = -0.01;
     scene.add(grid);
 
-    const femurMat = new THREE.MeshStandardMaterial({ color: 0x457b9d });
-    const tibiaMat = new THREE.MeshStandardMaterial({ color: 0x1d3557 });
+    // Hippos-ish materials: charcoal blue + lavender + mint accent
+    const femurMat   = new THREE.MeshStandardMaterial({ color: "#6D6A8E" }); // lavender-slate
+    const tibiaMat   = new THREE.MeshStandardMaterial({ color: "#2F3A4A" }); // charcoal blue
+    const patellaMat = new THREE.MeshStandardMaterial({ color: "#B7B3D9" }); // lavender
 
     const femurGeo = new THREE.BoxGeometry(1, 4, 1);
     const femur = new THREE.Mesh(femurGeo, femurMat);
@@ -69,16 +73,21 @@ export default function KneeModel3D({ angleDeg = 0 }) {
     tibia.position.set(0, -2, 0);
     tibiaPivot.add(tibia);
 
+    const patellaGeo = new THREE.SphereGeometry(0.6, 32, 32);
+    const patella = new THREE.Mesh(patellaGeo, patellaMat);
+    patella.position.set(0, 0, 0);
+    scene.add(patella);
+
     threeRef.current.scene = scene;
     threeRef.current.camera = camera;
     threeRef.current.renderer = renderer;
     threeRef.current.femur = femur;
     threeRef.current.tibiaPivot = tibiaPivot;
     threeRef.current.tibia = tibia;
+    threeRef.current.patella = patella;
     threeRef.current.currentAngle = 0;
 
     const animate = () => {
-      // Always use the latest angleDeg from angleRef
       const target = clamp(angleRef.current, 0, 120);
       threeRef.current.currentAngle += (target - threeRef.current.currentAngle) * 0.1;
       const rad = THREE.MathUtils.degToRad(-threeRef.current.currentAngle);
@@ -106,8 +115,10 @@ export default function KneeModel3D({ angleDeg = 0 }) {
       mountEl.removeChild(renderer.domElement);
       femurGeo.dispose();
       tibiaGeo.dispose();
+      patellaGeo.dispose();
       femurMat.dispose();
       tibiaMat.dispose();
+      patellaMat.dispose();
     };
     // eslint-disable-next-line
   }, []);
@@ -120,7 +131,9 @@ export default function KneeModel3D({ angleDeg = 0 }) {
         height: 320,
         borderRadius: 12,
         overflow: "hidden",
-        background: "#fff",
+        background:
+          "linear-gradient(180deg, #F7F8FB 0%, #E9EBF2 100%)", // matches cards
+        border: "1px solid #C9CED8",
       }}
     />
   );
