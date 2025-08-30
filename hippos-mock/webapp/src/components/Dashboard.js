@@ -4,7 +4,8 @@ import {
   Heading,
   Container,
   VStack,
-  Code,
+  Text,
+  SimpleGrid,
 } from "@chakra-ui/react";
 import {
   Chart,
@@ -15,7 +16,7 @@ import {
   Title,
   CategoryScale,
   Filler,
-  Tooltip,
+  Tooltip as ChartTooltip,
   Legend,
 } from "chart.js";
 import KneeModel3D from "./KneeModel3D";
@@ -28,7 +29,7 @@ Chart.register(
   Title,
   CategoryScale,
   Filler,
-  Tooltip,
+  ChartTooltip,
   Legend
 );
 
@@ -37,16 +38,16 @@ const URL_LATEST_RAW = "http://localhost:5050/latest_raw";
 
 /** Hippos-ish palette */
 const palette = {
-  bgGradFrom: "#F1F2F6", // light grey
-  bgGradTo:   "#D9DBE1", // slightly darker grey
-  charcoal:   "#1F2430", // headings / text
-  slate:      "#404754", // secondary text / grid
-  cardFrom:   "#F7F8FB", // card gradient top
-  cardTo:     "#E9EBF2", // card gradient bottom
-  border:     "#C9CED8",
-  mint:       "#9AD0B3", // primary accent (buttons/lines)
-  lavender:   "#B7B3D9", // secondary accent
-  white:      "#FFFFFF",
+  bgGradFrom: "#F1F2F6",
+  bgGradTo: "#D9DBE1",
+  charcoal: "#1F2430",
+  slate: "#404754",
+  cardFrom: "#F7F8FB",
+  cardTo: "#E9EBF2",
+  border: "#C9CED8",
+  mint: "#9AD0B3",
+  lavender: "#B7B3D9",
+  white: "#FFFFFF",
 };
 
 const Dashboard = () => {
@@ -55,8 +56,10 @@ const Dashboard = () => {
   const [processedData, setProcessedData] = useState("Loading...");
   const [rawData, setRawData] = useState("Loading...");
   const [startTime, setStartTime] = useState(Date.now());
+  // Add state for tooltip visibility
+  const [showTip, setShowTip] = useState(false);
 
-  // Extract the latest angle from processedData (safe fallback to 0)
+  // Extract angle safely
   let angleDeg = 0;
   try {
     const parsed = JSON.parse(processedData);
@@ -64,6 +67,23 @@ const Dashboard = () => {
   } catch {
     angleDeg = 0;
   }
+
+  // Prepare latest reading
+  const latestReading = (() => {
+    try {
+      const obj = JSON.parse(processedData);
+      const ts =
+        typeof obj.timestamp === "number" ? obj.timestamp : Date.now() / 1000;
+      const angle = Number(obj.combined_average) || 0;
+      return {
+        timestamp: ts,
+        angle,
+        formatted: new Date(ts * 1000).toLocaleString(),
+      };
+    } catch {
+      return null;
+    }
+  })();
 
   useEffect(() => {
     if (!chartRef.current) return;
@@ -78,7 +98,7 @@ const Dashboard = () => {
             label: "Combined Average",
             data: [],
             borderColor: palette.mint,
-            backgroundColor: "rgba(154, 208, 179, 0.15)", // mint with alpha
+            backgroundColor: "rgba(154, 208, 179, 0.15)",
             borderWidth: 3,
             fill: true,
             tension: 0.2,
@@ -110,7 +130,11 @@ const Dashboard = () => {
             grid: { color: "#E2E5EC" },
           },
           y: {
-            title: { display: true, text: "Combined Average", color: palette.slate },
+            title: {
+              display: true,
+              text: "Combined Average",
+              color: palette.slate,
+            },
             ticks: { color: palette.slate },
             grid: { color: "#E2E5EC" },
             beginAtZero: false,
@@ -178,13 +202,12 @@ const Dashboard = () => {
       }}
     >
       <VStack spacing={8} align="start">
-
         <Heading
           size="lg"
           color={palette.charcoal}
           w="100%"
           textAlign="center"
-          mb={6} // <-- Add margin below the title
+          mb={6}
         >
           Knee Brace Data Dashboard
         </Heading>
@@ -204,34 +227,116 @@ const Dashboard = () => {
           <KneeModel3D angleDeg={angleDeg} />
         </Box>
 
-        {/* Processed JSON */}
+        {/* Latest Reading Card */}
         <Box
           w="100%"
           borderRadius="2xl"
           border={`2px solid ${palette.border}`}
           boxShadow="md"
-          p={0}
           sx={{
             background: `linear-gradient(180deg, ${palette.cardFrom} 0%, ${palette.cardTo} 100%)`,
           }}
         >
-          <Heading size="md" p={4} color={palette.charcoal}>
-            Processed Data
-          </Heading>
-          <Code
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
             p={4}
-            w="100%"
-            display="block"
-            borderRadius="0 0 20px 20px"
-            whiteSpace="pre-wrap"
-            sx={{
-              bg: "#22262A",
-              color: "#EDF2F7",
-              borderTop: `1px solid ${palette.border}`,
-            }}
+            position="relative"
           >
-            {processedData}
-          </Code>
+            <Heading size="md" color={palette.charcoal}>
+              Latest Reading
+            </Heading>
+
+            {/* Tooltip Button */}
+            <Box position="relative" display="inline-block">
+              <Box
+                as="button"
+                aria-label="Angle description"
+                w="28px"
+                h="28px"
+                borderRadius="full"
+                border={`1px solid ${palette.border}`}
+                bg={palette.white}
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                fontWeight="bold"
+                color={palette.slate}
+                onMouseEnter={() => setShowTip(true)}
+                onMouseLeave={() => setShowTip(false)}
+                _hover={{ bg: palette.cardFrom }}
+              >
+                ?
+              </Box>
+
+              {/* Tooltip bubble */}
+              {showTip && (
+                <Box
+                  position="absolute"
+                  top="50%"
+                  right="40px"
+                  transform="translateY(-50%)"
+                  px={3}
+                  py={2}
+                  bg={palette.charcoal}
+                  color="white"
+                  fontSize="sm"
+                  borderRadius="md"
+                  border={`1px solid ${palette.border}`}
+                  whiteSpace="nowrap"
+                  zIndex={9999}
+                  boxShadow="md"
+                >
+                  angle description
+                </Box>
+              )}
+            </Box>
+          </Box>
+
+          <Box px={6} pb={5}>
+            {latestReading ? (
+              <SimpleGrid columns={[1, 2]} spacing={6}>
+                <Box
+                  p={4}
+                  borderRadius="lg"
+                  bg={palette.white}
+                  border={`1px solid ${palette.border}`}
+                >
+                  <Text fontSize="sm" color={palette.slate} mb={1}>
+                    Timestamp
+                  </Text>
+                  <Text
+                    fontSize="lg"
+                    fontWeight="semibold"
+                    color={palette.charcoal}
+                  >
+                    {latestReading.formatted}
+                  </Text>
+                </Box>
+
+                <Box
+                  p={4}
+                  borderRadius="lg"
+                  bg={palette.white}
+                  border={`1px solid ${palette.border}`}
+                >
+                  <Text fontSize="sm" color={palette.slate} mb={1}>
+                    Angle
+                  </Text>
+                  <Text
+                    fontSize="2xl"
+                    fontWeight="bold"
+                    color={palette.charcoal}
+                  >
+                    {latestReading.angle.toFixed(1)}°
+                  </Text>
+                </Box>
+              </SimpleGrid>
+            ) : (
+              <Text color={palette.slate}>Waiting for data…</Text>
+            )}
+          </Box>
         </Box>
 
         {/* Chart */}
@@ -251,38 +356,6 @@ const Dashboard = () => {
           <Box h="260px" p={3} bg={palette.white} borderRadius="0 0 20px 20px">
             <canvas ref={chartRef}></canvas>
           </Box>
-        </Box>
-
-        {/* Raw JSON */}
-        <Box
-          w="100%"
-          borderRadius="2xl"
-          border={`2px solid ${palette.border}`}
-          boxShadow="md"
-          p={0}
-          sx={{
-            background: `linear-gradient(180deg, ${palette.cardFrom} 0%, ${palette.cardTo} 100%)`,
-          }}
-        >
-          {/*
-          <Heading size="md" p={4} color={palette.charcoal}>
-            Raw Data (For Ursula)
-          </Heading>
-          <Code
-            p={4}
-            w="100%"
-            display="block"
-            borderRadius="0 0 20px 20px"
-            whiteSpace="pre-wrap"
-            sx={{
-              bg: "#22262A",
-              color: "#EDF2F7",
-              borderTop: `1px solid ${palette.border}`,
-            }}
-          >
-            {rawData}
-          </Code>
-          */}
         </Box>
       </VStack>
     </Container>
