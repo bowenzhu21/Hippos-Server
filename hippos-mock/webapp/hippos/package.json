@@ -13,9 +13,9 @@
     "lint:fix": "expo lint --fix",
     "typecheck": "tsc --noEmit",
     "format": "prettier -w .",
-    "dev": "../../scripts/dev.sh",
-    "android:emulator": "../../scripts/android-emulator.sh",
-    "android:check": "../../scripts/check-android-env.sh"
+    "dev": "bash ../../webapp/scripts/dev.sh",
+    "android:emulator": "bash ../../scripts/android-emulator.sh",
+    "android:check": "bash ../../scripts/check-android-env.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
