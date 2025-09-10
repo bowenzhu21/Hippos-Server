@@ -12,11 +12,13 @@ latest_processed = {"combined_average": 0, "timestamp": 0}
 latest_raw = {}
 
 # File paths
-PROCESSED_FILE = "data/processed_log.csv"
-RAW_FILE = "data/raw_log.csv"
+# Always store data inside the webapp so we don't create a top-level data folder.
+BASE_DIR = os.path.join(os.path.dirname(__file__), "webapp", "hippos", "data")
+PROCESSED_FILE = os.path.join(BASE_DIR, "processed_log.csv")
+RAW_FILE = os.path.join(BASE_DIR, "raw_log.csv")
 
 # Ensure data directory and files exist
-os.makedirs("data", exist_ok=True)
+os.makedirs(BASE_DIR, exist_ok=True)
 
 # Create CSV headers if missing
 if not os.path.exists(PROCESSED_FILE):
