@@ -1,1 +1,28 @@
-*/.venv
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+.venv*/
+
+# Envs/Secrets
+.env
+.env.*
+*.env
+
+# Node/Expo
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Editor/OS
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
