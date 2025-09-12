@@ -3,6 +3,7 @@ import random
 import requests
 from datetime import datetime
 import math
+import os
 
 RAW_ENDPOINT = 'http://localhost:5050/upload_raw'
 PROCESSED_ENDPOINT = 'http://localhost:5050/upload_processed'
@@ -19,7 +20,10 @@ def simulate_ml_processing(tick):
     timestamp = datetime.now().timestamp()
     return {"combined_average": combined_average, "timestamp": timestamp}
 
-tick = 0
+# Default back to faster streaming; override with HIPPOS_GEN_PERIOD_SEC
+PERIOD_SEC = float(os.getenv("HIPPOS_GEN_PERIOD_SEC", "0.5"))
+
+tick = 0.0
 while True:
     raw = generate_raw()
     processed = simulate_ml_processing(tick)
@@ -32,5 +36,5 @@ while True:
     except Exception as e:
         print("[ML MOCK] Error:", e)
 
-    tick += 0.5  # increment by sleep interval
-    time.sleep(0.5) #Change to 0.02 when done testing
+    tick += PERIOD_SEC  # increment by sleep interval
+    time.sleep(PERIOD_SEC)

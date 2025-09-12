@@ -144,6 +144,8 @@ export default function Dashboard() {
           <StatCard title="Time Stamp" value={time} />
           <StatCard title="Live Angle" value={liveAngle} />
         </View>
+
+        {/* Streaming mode: no manual upload button */}
       </View>
     </LinearGradient>
   );
