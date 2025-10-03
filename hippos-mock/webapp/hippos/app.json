@@ -54,10 +54,6 @@
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "extra": {
-      "EXPO_PUBLIC_FLEXION_BASE": "http://192.168.1.10:8000",
-      "EXPO_PUBLIC_FLEXION_SESSION": "athlete1"
     }
   }
 }

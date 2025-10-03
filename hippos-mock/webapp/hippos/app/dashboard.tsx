@@ -3,8 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { TouchableOpacity, View, Text, ScrollView } from 'react-native';
 import { VictoryAxis, VictoryChart, VictoryLine, VictoryTheme } from 'victory-native';
-import { DualHX1 } from '@/lib/bleDual';
-import type { IMUFrame } from '@/lib/computeFlexion';
+import { DualHX1, type IMUFrame } from '@/lib/bleDual';
 
 type HistoryPoint = { ts: number; angle: number };
 

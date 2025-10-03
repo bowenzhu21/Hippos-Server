@@ -1,6 +1,15 @@
 import { BleManager, BleError, Characteristic, Device, State, Subscription } from "react-native-ble-plx";
 import { Buffer } from "buffer";
-import { computeFlexion, IMUFrame } from "./computeFlexion";
+import { FlexionEstimator, ImuRow } from "@/lib/flexionRuntime";
+
+export type IMUFrame = {
+  deviceId: string;
+  t_us_device: number;
+  ax: number; ay: number; az: number;
+  gx: number; gy: number; gz: number;
+  mx: number; my: number; mz: number;
+  temp: number;
+};
 
 // NUS UUIDs
 const NUS_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
@@ -23,6 +32,7 @@ export class DualHX1 {
   private rightId: string | null = null;
   private onUpdate: Listener;
   private stateSub: Subscription | null = null;
+  private estimator = new FlexionEstimator({ fs: 57, calibSeconds: 10, accelCutoffHz: 5, windowSeconds: 1 });
 
   constructor(onUpdate: Listener) { this.onUpdate = onUpdate; }
 
@@ -127,16 +137,30 @@ export class DualHX1 {
     const qR: IMUFrame[] = [];
     const TOL_US = 10_000; // ±10 ms
 
-    const tryPair = async () => {
+    const frameToRow = (f: IMUFrame): ImuRow => ([
+      f.t_us_device,
+      f.ax, f.ay, f.az,
+      f.gx, f.gy, f.gz,
+      f.mx, f.my, f.mz,
+      f.temp,
+    ]);
+
+    const tryPair = () => {
       while (qL.length && qR.length) {
         const a = qL[0], b = qR[0];
         const dt = a.t_us_device - b.t_us_device;
         if (Math.abs(dt) <= TOL_US) {
           qL.shift(); qR.shift();
           try {
-            const res = await computeFlexion(a, b);
-            this.onUpdate({ status: "streaming", calibrated: res.calibrated, angle: res.angle ?? null });
-          } catch (e:any) {
+            const thighRow = frameToRow(a);
+            const shankRow = frameToRow(b);
+            const { angle, calibrated } = this.estimator.ingest(thighRow, shankRow);
+            this.onUpdate({
+              status: calibrated ? "streaming" : "calibrating",
+              calibrated,
+              angle: calibrated ? angle ?? null : null,
+            });
+          } catch (e: any) {
             this.onUpdate({ status: "error", error: e?.message || String(e) });
           }
         } else if (dt < 0) { qL.shift(); } else { qR.shift(); }
@@ -177,6 +201,9 @@ export class DualHX1 {
     try {
       this.mgr?.destroy();
       this.mgr = null;
+    } catch {}
+    try {
+      this.estimator.reset();
     } catch {}
   }
 }
