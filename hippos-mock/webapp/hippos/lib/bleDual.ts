@@ -9,7 +9,7 @@ const NUS_TX_CHAR = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 type Listener = (state: { status: string; angle?: number | null; calibrated?: boolean; error?: string; }) => void;
 
 export class DualHX1 {
-  private mgr = new BleManager();
+  private mgr: BleManager | null = null;
   private leftId: string | null = null;
   private rightId: string | null = null;
   private onUpdate: Listener;
@@ -17,8 +17,21 @@ export class DualHX1 {
 
   constructor(onUpdate: Listener) { this.onUpdate = onUpdate; }
 
+  private getManager(): BleManager {
+    if (this.mgr) return this.mgr;
+    try {
+      this.mgr = new BleManager();
+      return this.mgr;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.onUpdate({ status: "error", error: message });
+      throw err;
+    }
+  }
+
   private async ensurePoweredOn() {
-    const current = await this.mgr.state();
+    const mgr = this.getManager();
+    const current = await mgr.state();
     if (current === State.PoweredOn) return;
 
     this.onUpdate({ status: "bluetooth-off" });
@@ -29,7 +42,7 @@ export class DualHX1 {
         reject(new Error("Bluetooth not powered on"));
       }, 8000);
 
-      this.stateSub = this.mgr.onStateChange((state) => {
+      this.stateSub = mgr.onStateChange((state) => {
         if (state === State.PoweredOn) {
           clearTimeout(timeout);
           this.stateSub?.remove();
@@ -55,17 +68,18 @@ export class DualHX1 {
     }
 
     this.onUpdate({ status: "scanning" });
+    const mgr = this.getManager();
     const found: Device[] = [];
     await new Promise<void>((resolve) => {
-      this.mgr.startDeviceScan(null, { allowDuplicates: false }, (err: BleError | null, dev: Device | null) => {
+      mgr.startDeviceScan(null, { allowDuplicates: false }, (err: BleError | null, dev: Device | null) => {
         if (err) { this.onUpdate({ status:"error", error: err.message }); return; }
         if (!dev) return;
         if ((dev.name || "").includes("HX1") && !found.find(d => d.id === dev.id)) {
           found.push(dev);
-          if (found.length >= 2) { this.mgr.stopDeviceScan(); resolve(); }
+          if (found.length >= 2) { mgr.stopDeviceScan(); resolve(); }
         }
       });
-      setTimeout(() => { this.mgr.stopDeviceScan(); resolve(); }, 8000);
+      setTimeout(() => { mgr.stopDeviceScan(); resolve(); }, 8000);
     });
 
     if (found.length < 2) { this.onUpdate({ status:"error", error:"Found fewer than 2 HX1 devices" }); return; }
@@ -132,6 +146,9 @@ export class DualHX1 {
       this.stateSub?.remove();
       this.stateSub = null;
     } catch {}
-    try { this.mgr.destroy(); } catch {}
+    try {
+      this.mgr?.destroy();
+      this.mgr = null;
+    } catch {}
   }
 }
