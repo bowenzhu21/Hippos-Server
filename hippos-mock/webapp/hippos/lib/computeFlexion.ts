@@ -7,7 +7,7 @@ export type IMUFrame = {
   temp: number;
 };
 
-const BASE = process.env.EXPO_PUBLIC_FLEXION_BASE ?? "https://hippos-api.ddns.net"; // set via env
+const BASE = process.env.EXPO_PUBLIC_FLEXION_BASE ?? "http://YOUR-LAN-IP:8000"; // set via env
 const SESSION_ID = process.env.EXPO_PUBLIC_FLEXION_SESSION ?? "default-session";
 
 export async function computeFlexion(left: IMUFrame, right: IMUFrame): Promise<{ calibrated: boolean; angle: number | null; }> {
@@ -20,12 +20,24 @@ export async function computeFlexion(left: IMUFrame, right: IMUFrame): Promise<{
     f.temp,
   ]);
 
-  const res = await fetch(`${BASE}/ingest`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id: SESSION_ID, thigh: toRow(left), shank: toRow(right) }),
-  });
+  const base = BASE.replace(/\/+$/, "");
+  const url = `${base}/ingest`;
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: SESSION_ID, thigh: toRow(left), shank: toRow(right) }),
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Flexion service request failed (${url}): ${msg}`);
+  }
 
-  if (!res.ok) throw new Error(`Flexion service HTTP ${res.status}`);
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    const msg = detail ? `Flexion service HTTP ${res.status}: ${detail}` : `Flexion service HTTP ${res.status}`;
+    throw new Error(`${msg} (POST ${url})`);
+  }
   return res.json(); // { calibrated, angle }
 }

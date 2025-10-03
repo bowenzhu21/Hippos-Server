@@ -6,7 +6,16 @@ import { computeFlexion, IMUFrame } from "./computeFlexion";
 const NUS_SERVICE = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const NUS_TX_CHAR = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 
-type Listener = (state: { status: string; angle?: number | null; calibrated?: boolean; error?: string; }) => void;
+type Listener = (state: {
+  status?: string;
+  angle?: number | null;
+  calibrated?: boolean;
+  error?: string;
+  leftFrame?: IMUFrame;
+  rightFrame?: IMUFrame;
+  leftDeviceName?: string;
+  rightDeviceName?: string;
+}) => void;
 
 export class DualHX1 {
   private mgr: BleManager | null = null;
@@ -86,6 +95,11 @@ export class DualHX1 {
 
     const left = found[0], right = found[1];
     this.leftId = left.id; this.rightId = right.id;
+    this.onUpdate({
+      status: "connecting",
+      leftDeviceName: left.name ?? left.id,
+      rightDeviceName: right.name ?? right.id,
+    });
 
     const L = await left.connect(); try { await L.requestMTU(247); } catch {}
     await L.discoverAllServicesAndCharacteristics();
@@ -131,14 +145,28 @@ export class DualHX1 {
 
     L.monitorCharacteristicForService(NUS_SERVICE, NUS_TX_CHAR, (_e: BleError | null, c: Characteristic | null) => {
       if (!c?.value) return;
-      qL.push(...parse(L.id, c.value)); tryPair();
+      const frames = parse(L.id, c.value);
+      if (frames.length) {
+        qL.push(...frames);
+        this.onUpdate({ leftFrame: frames[frames.length - 1] });
+        tryPair();
+      }
     });
     R.monitorCharacteristicForService(NUS_SERVICE, NUS_TX_CHAR, (_e: BleError | null, c: Characteristic | null) => {
       if (!c?.value) return;
-      qR.push(...parse(R.id, c.value)); tryPair();
+      const frames = parse(R.id, c.value);
+      if (frames.length) {
+        qR.push(...frames);
+        this.onUpdate({ rightFrame: frames[frames.length - 1] });
+        tryPair();
+      }
     });
 
-    this.onUpdate({ status: "connected" });
+    this.onUpdate({
+      status: "connected",
+      leftDeviceName: left.name ?? left.id,
+      rightDeviceName: right.name ?? right.id,
+    });
   }
 
   destroy() {

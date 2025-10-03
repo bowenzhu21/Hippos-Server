@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { TouchableOpacity, View, Text } from 'react-native';
+import { TouchableOpacity, View, Text, ScrollView } from 'react-native';
 import { VictoryAxis, VictoryChart, VictoryLine, VictoryTheme } from 'victory-native';
 import { DualHX1 } from '@/lib/bleDual';
+import type { IMUFrame } from '@/lib/computeFlexion';
 
 type HistoryPoint = { ts: number; angle: number };
 
@@ -13,6 +14,10 @@ export default function Dashboard() {
   const [calibrated, setCalibrated] = useState(false);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [leftFrame, setLeftFrame] = useState<IMUFrame | null>(null);
+  const [rightFrame, setRightFrame] = useState<IMUFrame | null>(null);
+  const [leftName, setLeftName] = useState<string>('—');
+  const [rightName, setRightName] = useState<string>('—');
   const managerRef = useRef<DualHX1 | null>(null);
 
   useEffect(() => () => {
@@ -20,14 +25,23 @@ export default function Dashboard() {
     managerRef.current = null;
   }, []);
 
-  const handleUpdate = useCallback((update: { status: string; angle?: number | null; calibrated?: boolean; error?: string }) => {
+  const handleUpdate = useCallback((update: {
+    status?: string;
+    angle?: number | null;
+    calibrated?: boolean;
+    error?: string;
+    leftFrame?: IMUFrame;
+    rightFrame?: IMUFrame;
+    leftDeviceName?: string;
+    rightDeviceName?: string;
+  }) => {
     if (update.status) setStatus(update.status);
     if (typeof update.calibrated === 'boolean') setCalibrated(update.calibrated);
 
     if (update.error) {
       setError(update.error);
       console.warn(update.error);
-    } else if (update.status !== 'error') {
+    } else if (update.status && update.status !== 'error') {
       setError(null);
     }
 
@@ -38,6 +52,11 @@ export default function Dashboard() {
     } else if (update.angle === null) {
       setAngle(null);
     }
+
+    if (update.leftFrame) setLeftFrame(update.leftFrame);
+    if (update.rightFrame) setRightFrame(update.rightFrame);
+    if (update.leftDeviceName) setLeftName(update.leftDeviceName);
+    if (update.rightDeviceName) setRightName(update.rightDeviceName);
   }, []);
 
   const start = useCallback(async () => {
@@ -46,6 +65,10 @@ export default function Dashboard() {
     setAngle(null);
     setCalibrated(false);
     setHistory([]);
+    setLeftFrame(null);
+    setRightFrame(null);
+    setLeftName('—');
+    setRightName('—');
 
     managerRef.current?.destroy();
     const manager = new DualHX1(handleUpdate);
@@ -69,6 +92,29 @@ export default function Dashboard() {
 
   const liveAngle = calibrated && typeof angle === 'number' ? `${angle.toFixed(1)}°` : '—';
 
+  const formatFrame = useCallback((frame: IMUFrame | null) => {
+    if (!frame) {
+      return {
+        time: '—',
+        accel: 'ax —  ay —  az —',
+        gyro: 'gx —  gy —  gz —',
+        mag: 'mx —  my —  mz —',
+        temp: '—',
+      };
+    }
+    const toFixed = (n: number) => (Number.isFinite(n) ? n.toFixed(2) : 'NaN');
+    return {
+      time: `${(frame.t_us_device / 1_000_000).toFixed(3)} s (${frame.t_us_device} µs)`,
+      accel: `ax ${toFixed(frame.ax)}  ay ${toFixed(frame.ay)}  az ${toFixed(frame.az)}`,
+      gyro: `gx ${toFixed(frame.gx)}  gy ${toFixed(frame.gy)}  gz ${toFixed(frame.gz)}`,
+      mag: `mx ${toFixed(frame.mx)}  my ${toFixed(frame.my)}  mz ${toFixed(frame.mz)}`,
+      temp: `${toFixed(frame.temp)} °C`,
+    };
+  }, []);
+
+  const leftInfo = useMemo(() => formatFrame(leftFrame), [leftFrame, formatFrame]);
+  const rightInfo = useMemo(() => formatFrame(rightFrame), [rightFrame, formatFrame]);
+
   return (
     <LinearGradient
       colors={["#2F2F2F", "#6A6A6A"]}
@@ -76,7 +122,10 @@ export default function Dashboard() {
       end={{ x: 0.5, y: 1 }}
       style={{ flex: 1 }}
     >
-      <View style={{ flex: 1, paddingTop: 24, paddingHorizontal: 16 }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingTop: 24, paddingHorizontal: 16, paddingBottom: 32, gap: 16 }}
+      >
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
           <Image
             source={require('@/assets/images/hippos_icon.png')}
@@ -104,19 +153,12 @@ export default function Dashboard() {
             <Text style={{ fontWeight: '700', color: '#000' }}>Connect 2×HX1</Text>
           </TouchableOpacity>
           <Text style={{ marginTop: 8, color: '#EDEDED', fontWeight: '500' }}>Status: {status}</Text>
+          <Text style={{ marginTop: 4, color: '#EDEDED' }}>Left device: {leftName}</Text>
+          <Text style={{ marginTop: 2, color: '#EDEDED' }}>Right device: {rightName}</Text>
           <Text style={{ marginTop: 4, color: '#EDEDED' }}>
             {calibrated ? `Angle: ${liveAngle}` : 'Calibrating… keep sensors steady'}
           </Text>
           {error ? <Text style={{ marginTop: 4, color: '#FF6B6B' }}>{error}</Text> : null}
-        </View>
-
-        <Text style={{ color: '#EDEDED', textAlign: 'center', marginTop: 8, marginBottom: 6 }}>3D Knee Model</Text>
-        <View style={{ alignItems: 'center' }}>
-          <Image
-            source={require('@/assets/images/knee_model.png')}
-            style={{ width: 140, height: 180 }}
-            contentFit="contain"
-          />
         </View>
 
         <View style={{ width: '100%', alignItems: 'center', marginVertical: 8 }}>
@@ -228,7 +270,29 @@ export default function Dashboard() {
             </View>
           </View>
         </View>
-      </View>
+
+        <View style={{ marginTop: 16, backgroundColor: 'rgba(0,0,0,0.35)', padding: 12, borderRadius: 10 }}>
+          <Text style={{ color: '#F2B24D', fontWeight: '700', marginBottom: 8 }}>Raw IMU Streams</Text>
+          <View style={{ flexDirection: 'row' }}>
+            <View style={{ flex: 1, paddingRight: 6 }}>
+              <Text style={{ color: '#EDEDED', fontWeight: '600', marginBottom: 4 }}>Left HX1</Text>
+              <Text style={{ color: '#CFCFCF', marginBottom: 2 }}>t: {leftInfo.time}</Text>
+              <Text style={{ color: '#CFCFCF', marginBottom: 2 }}>Accel: {leftInfo.accel}</Text>
+              <Text style={{ color: '#CFCFCF', marginBottom: 2 }}>Gyro: {leftInfo.gyro}</Text>
+              <Text style={{ color: '#CFCFCF', marginBottom: 2 }}>Mag: {leftInfo.mag}</Text>
+              <Text style={{ color: '#CFCFCF' }}>Temp: {leftInfo.temp}</Text>
+            </View>
+            <View style={{ flex: 1, paddingLeft: 6 }}>
+              <Text style={{ color: '#EDEDED', fontWeight: '600', marginBottom: 4 }}>Right HX1</Text>
+              <Text style={{ color: '#CFCFCF', marginBottom: 2 }}>t: {rightInfo.time}</Text>
+              <Text style={{ color: '#CFCFCF', marginBottom: 2 }}>Accel: {rightInfo.accel}</Text>
+              <Text style={{ color: '#CFCFCF', marginBottom: 2 }}>Gyro: {rightInfo.gyro}</Text>
+              <Text style={{ color: '#CFCFCF', marginBottom: 2 }}>Mag: {rightInfo.mag}</Text>
+              <Text style={{ color: '#CFCFCF' }}>Temp: {rightInfo.temp}</Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
     </LinearGradient>
   );
 }
