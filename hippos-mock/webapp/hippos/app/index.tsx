@@ -39,7 +39,8 @@ export default function Index() {
           >
             <Image
               source={require('@/assets/images/hippos_logo.png')}
-              style={{ width: 160, height: 160, resizeMode: 'contain' }}
+              style={{ width: 160, height: 160 }}
+              contentFit="contain"
             />
           </View>
 

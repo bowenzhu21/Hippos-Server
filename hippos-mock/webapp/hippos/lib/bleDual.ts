@@ -1,4 +1,4 @@
-import { BleManager, BleError, Characteristic, Device } from "react-native-ble-plx";
+import { BleManager, BleError, Characteristic, Device, State, Subscription } from "react-native-ble-plx";
 import { Buffer } from "buffer";
 import { computeFlexion, IMUFrame } from "./computeFlexion";
 
@@ -13,10 +13,47 @@ export class DualHX1 {
   private leftId: string | null = null;
   private rightId: string | null = null;
   private onUpdate: Listener;
+  private stateSub: Subscription | null = null;
 
   constructor(onUpdate: Listener) { this.onUpdate = onUpdate; }
 
+  private async ensurePoweredOn() {
+    const current = await this.mgr.state();
+    if (current === State.PoweredOn) return;
+
+    this.onUpdate({ status: "bluetooth-off" });
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.stateSub?.remove();
+        this.stateSub = null;
+        reject(new Error("Bluetooth not powered on"));
+      }, 8000);
+
+      this.stateSub = this.mgr.onStateChange((state) => {
+        if (state === State.PoweredOn) {
+          clearTimeout(timeout);
+          this.stateSub?.remove();
+          this.stateSub = null;
+          resolve();
+        } else if (state === State.Unsupported) {
+          clearTimeout(timeout);
+          this.stateSub?.remove();
+          this.stateSub = null;
+          reject(new Error("Bluetooth unsupported"));
+        }
+      }, true);
+    });
+  }
+
   async connectTwo() {
+    try {
+      await this.ensurePoweredOn();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      this.onUpdate({ status: "error", error: message });
+      throw err;
+    }
+
     this.onUpdate({ status: "scanning" });
     const found: Device[] = [];
     await new Promise<void>((resolve) => {
@@ -90,5 +127,11 @@ export class DualHX1 {
     this.onUpdate({ status: "connected" });
   }
 
-  destroy() { try { this.mgr.destroy(); } catch {} }
+  destroy() {
+    try {
+      this.stateSub?.remove();
+      this.stateSub = null;
+    } catch {}
+    try { this.mgr.destroy(); } catch {}
+  }
 }

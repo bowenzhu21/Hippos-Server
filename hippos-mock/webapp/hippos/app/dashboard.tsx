@@ -78,7 +78,11 @@ export default function Dashboard() {
     >
       <View style={{ flex: 1, paddingTop: 24, paddingHorizontal: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-          <Image source={require('@/assets/images/hippos_icon.png')} style={{ width: 28, height: 28, borderRadius: 14 }} />
+          <Image
+            source={require('@/assets/images/hippos_icon.png')}
+            style={{ width: 28, height: 28, borderRadius: 14 }}
+            contentFit="cover"
+          />
           <Text style={{ marginLeft: 8, fontSize: 18, letterSpacing: 3, fontWeight: '700', color: '#EDEDED' }}>DASHBOARD</Text>
         </View>
 
@@ -108,7 +112,11 @@ export default function Dashboard() {
 
         <Text style={{ color: '#EDEDED', textAlign: 'center', marginTop: 8, marginBottom: 6 }}>3D Knee Model</Text>
         <View style={{ alignItems: 'center' }}>
-          <Image source={require('@/assets/images/knee_model.png')} style={{ width: 140, height: 180, resizeMode: 'contain' }} />
+          <Image
+            source={require('@/assets/images/knee_model.png')}
+            style={{ width: 140, height: 180 }}
+            contentFit="contain"
+          />
         </View>
 
         <View style={{ width: '100%', alignItems: 'center', marginVertical: 8 }}>

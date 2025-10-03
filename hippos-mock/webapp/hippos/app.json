@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Hippos connects to HX1 sensors over Bluetooth."
-      }
+      },
+      "bundleIdentifier": "com.anonymous.hippos"
     },
     "android": {
       "adaptiveIcon": {
@@ -25,8 +26,14 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_SCAN",
         "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
         "android.permission.ACCESS_FINE_LOCATION"
-      ]
+      ],
+      "package": "com.anonymous.hippos"
     },
     "web": {
       "bundler": "metro",
