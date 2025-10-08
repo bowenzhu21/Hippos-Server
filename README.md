@@ -1,37 +1,45 @@
-# Hippos Mobile App — Full‑Stack Quick Start
 
-## What to install
+# Hippos App
 
-- Node.js 20 (use `nvm use` here if you have nvm)
-- Python 3.10+ with pip
-- Optional (to run on simulators/devices): Xcode (iOS) or Android Studio (Android)
+## Getting Started (Windows)
 
-## First‑time setup
+### Prerequisites
 
-Run these exactly in your terminal:
+- **Git**: [Download](https://git-scm.com/download/win)
+- **Node.js (LTS)**: [Download](https://nodejs.org/) or install via [nvm-windows](https://github.com/coreybutler/nvm-windows):
+	- `nvm install lts && nvm use lts`
+- **npm**: Comes with Node.js
+- **Expo Go app** or your custom dev client app on your phone (from App Store or Google Play)
 
-```bash
-# From the repo root (one level above this folder)
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+### 1. Clone the Repository
 
-# App dependencies
-cd hippos-mock/webapp/hippos
-nvm use    # optional, if you use nvm
+```
+git clone <REPO_URL>
+cd hippos-app/hippos-mock/webapp/hippos
+```
+
+### 2. Install Dependencies
+
+```
 npm install
 ```
 
-## Run the full stack
+### 3. Start the Expo Dev Server
 
-```bash
-cd webapp/hippos
-npm run dev
+```
+npx expo start --dev-client
 ```
 
-This launches the local Flask mocks and the Expo dev server. Follow the on‑screen prompt to open iOS (`i`), Android (`a`), or Web (`w`). Stop with `Ctrl+C`.
+### 4. Connect Your Phone
 
-## Data location
+- Make sure your phone and computer are on the same Wi-Fi network.
+- Download and install your custom Expo dev client app (or Expo Go, if supported).
+- Open the app and scan the QR code shown in your terminal or browser after running the dev server.
 
-- The mock API (`hippos-mock/listener.py`) now always writes CSV logs to `webapp/hippos/data`.
-- The previous top‑level folder `hippos-mock/data` is no longer used and has been removed.
+This will launch the app on your phone, connected to your local development server.
+
+---
+
+**Note:**
+- You do **not** need to use any Python scripts (`flexion.py`, `server.py`) for this workflow.
+- For Android/iOS development, ensure your device is set up for development (see [Expo documentation](https://docs.expo.dev/)).
