@@ -309,8 +309,9 @@ function compute_alpha_final(Aa:number[], Ag:number[], _dt:number, w=0.01): numb
 // ------------------------- Main runtime class -------------------------
 export class FlexionEstimator {
   private fs: number;
+  private dtMs: number;
   private calibNeeded: number;
-  private accelCut: number;
+  private accelCutoffHz: number;
   private winLen: number;
 
   private bufThigh: ImuRow[] = [];
@@ -324,11 +325,26 @@ export class FlexionEstimator {
   public calibrated = false;
   public lastAngle: number | null = null;
 
-  constructor(opts?: { fs?: number; calibSeconds?: number; accelCutoffHz?: number; windowSeconds?: number }) {
-    this.fs = opts?.fs ?? 57;
-    this.calibNeeded = Math.round(this.fs * (opts?.calibSeconds ?? 10)); // ~570
-    this.accelCut = opts?.accelCutoffHz ?? 5;
-    this.winLen = Math.max(64, Math.round(this.fs * (opts?.windowSeconds ?? 1.0)));
+  constructor(
+    opts: {
+      fs?: number;
+      calibSeconds?: number;
+      accelCutoffHz?: number;
+      windowSeconds?: number;
+    } = {}
+  ) {
+    const {
+      fs = 1000 / 60,
+      calibSeconds = 10,
+      accelCutoffHz = 5,
+      windowSeconds = 1.0,
+    } = opts;
+
+    this.fs = fs;
+    this.dtMs = 1000 / fs;
+    this.calibNeeded = Math.round(fs * calibSeconds);
+    this.accelCutoffHz = accelCutoffHz;
+    this.winLen = Math.max(64, Math.round(fs * windowSeconds));
   }
 
   reset() {
@@ -350,8 +366,8 @@ export class FlexionEstimator {
 
     const A1 = rowsThigh.map(r => [r[1], r[2], r[3]]);
     const A2 = rowsShank.map(r => [r[1], r[2], r[3]]);
-    const A1f = zeroPhaseFilter3d(A1, this.accelCut, this.fs);
-    const A2f = zeroPhaseFilter3d(A2, this.accelCut, this.fs);
+    const A1f = zeroPhaseFilter3d(A1, this.accelCutoffHz, this.fs);
+    const A2f = zeroPhaseFilter3d(A2, this.accelCutoffHz, this.fs);
 
     // gyro deg/s → rad/s
     const G1 = rowsThigh.map(r => [toRad(r[4]), toRad(r[5]), toRad(r[6])]);

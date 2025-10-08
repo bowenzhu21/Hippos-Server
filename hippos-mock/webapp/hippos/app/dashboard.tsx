@@ -155,7 +155,7 @@ export default function Dashboard() {
           <Text style={{ marginTop: 4, color: '#EDEDED' }}>Left device: {leftName}</Text>
           <Text style={{ marginTop: 2, color: '#EDEDED' }}>Right device: {rightName}</Text>
           <Text style={{ marginTop: 4, color: '#EDEDED' }}>
-            {calibrated ? `Angle: ${liveAngle}` : 'Calibrating… keep sensors steady'}
+            {calibrated ? `Angle: ${liveAngle}` : 'Calibrating…'}
           </Text>
           {error ? <Text style={{ marginTop: 4, color: '#FF6B6B' }}>{error}</Text> : null}
         </View>
