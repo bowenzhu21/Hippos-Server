@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { TouchableOpacity, View, Text, ScrollView } from 'react-native';
+import { TouchableOpacity, View, Text, ScrollView, TextInput } from 'react-native';
 import { VictoryAxis, VictoryChart, VictoryLine, VictoryTheme } from 'victory-native';
 import { DualHX1, type IMUFrame } from '@/lib/bleDual';
+import { ingestFlexionSamples, type FlexionSampleOut } from '@/lib/api';
 
 type HistoryPoint = { ts: number; angle: number };
 
@@ -17,7 +18,12 @@ export default function Dashboard() {
   const [rightFrame, setRightFrame] = useState<IMUFrame | null>(null);
   const [leftName, setLeftName] = useState<string>('—');
   const [rightName, setRightName] = useState<string>('—');
+  const [sessionId, setSessionId] = useState('');
+  const [pendingCount, setPendingCount] = useState(0);
+  const [uploadInfo, setUploadInfo] = useState<string | null>(null);
   const managerRef = useRef<DualHX1 | null>(null);
+  const pendingSamplesRef = useRef<FlexionSampleOut[]>([]);
+  const uploadingRef = useRef(false);
 
   useEffect(() => () => {
     managerRef.current?.destroy();
@@ -68,6 +74,9 @@ export default function Dashboard() {
     setRightFrame(null);
     setLeftName('—');
     setRightName('—');
+    pendingSamplesRef.current = [];
+    setPendingCount(0);
+    setUploadInfo(null);
 
     managerRef.current?.destroy();
     const manager = new DualHX1(handleUpdate);
@@ -90,6 +99,51 @@ export default function Dashboard() {
   }, [lastTimestamp]);
 
   const liveAngle = calibrated && typeof angle === 'number' ? `${angle.toFixed(1)}°` : '—';
+
+  useEffect(() => {
+    if (!calibrated || typeof angle !== 'number') return;
+    pendingSamplesRef.current.push({
+      ts: new Date().toISOString(),
+      angle_deg: angle,
+    });
+    setPendingCount(pendingSamplesRef.current.length);
+  }, [angle, calibrated]);
+
+  const flushPending = useCallback(async () => {
+    if (!sessionId || uploadingRef.current) return;
+    if (pendingSamplesRef.current.length === 0) return;
+
+    uploadingRef.current = true;
+    const batchSize = Math.min(100, pendingSamplesRef.current.length);
+    const batch = pendingSamplesRef.current.splice(0, batchSize);
+    setPendingCount(pendingSamplesRef.current.length);
+
+    try {
+      const result = await ingestFlexionSamples(sessionId.trim(), batch);
+      setUploadInfo(
+        `Synced ${batch.length} samples (inserted ${result.inserted}, updated ${result.updated})`
+      );
+    } catch (err) {
+      pendingSamplesRef.current = [...batch, ...pendingSamplesRef.current];
+      setPendingCount(pendingSamplesRef.current.length);
+      const message = err instanceof Error ? err.message : String(err);
+      setUploadInfo(`Sync failed: ${message}`);
+    } finally {
+      uploadingRef.current = false;
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const timer = setInterval(() => {
+      flushPending();
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [sessionId, flushPending]);
+
+  const handleManualSync = useCallback(() => {
+    flushPending();
+  }, [flushPending]);
 
   const formatFrame = useCallback((frame: IMUFrame | null) => {
     if (!frame) {
@@ -158,6 +212,48 @@ export default function Dashboard() {
             {calibrated ? `Angle: ${liveAngle}` : 'Calibrating…'}
           </Text>
           {error ? <Text style={{ marginTop: 4, color: '#FF6B6B' }}>{error}</Text> : null}
+        </View>
+
+        <View
+          style={{
+            backgroundColor: 'rgba(0,0,0,0.35)',
+            padding: 16,
+            borderRadius: 12,
+            gap: 12,
+          }}
+        >
+          <Text style={{ color: '#F2B24D', fontWeight: '700' }}>Session & Sync</Text>
+          <TextInput
+            placeholder="Session ID (UUID)"
+            placeholderTextColor="#999"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={sessionId}
+            onChangeText={setSessionId}
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              borderRadius: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 10,
+              color: '#111',
+            }}
+          />
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={{ color: '#EDEDED' }}>Pending samples: {pendingCount}</Text>
+            <TouchableOpacity
+              onPress={handleManualSync}
+              disabled={!sessionId || pendingCount === 0}
+              style={{
+                backgroundColor: !sessionId || pendingCount === 0 ? '#757575' : '#F2B24D',
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: '#000', fontWeight: '700' }}>Sync now</Text>
+            </TouchableOpacity>
+          </View>
+          {uploadInfo ? <Text style={{ color: '#EDEDED' }}>{uploadInfo}</Text> : null}
         </View>
 
         <View style={{ width: '100%', alignItems: 'center', marginVertical: 8 }}>
