@@ -13,7 +13,17 @@
       "infoPlist": {
         "NSBluetoothAlwaysUsageDescription": "Hippos connects to HX1 sensors over Bluetooth.",
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "148.230.87.119": {
+              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true,
+              "NSTemporaryExceptionMinimumTLSVersion": "TLSv1.0"
+            },
+            "hippos-api.ddns.net": {
+              "NSTemporaryExceptionAllowsInsecureHTTPLoads": true,
+              "NSTemporaryExceptionMinimumTLSVersion": "TLSv1.0"
+            }
+          }
         }
       },
       "bundleIdentifier": "com.anonymous.hippos"

@@ -30,6 +30,14 @@ npm install
 npx expo start --dev-client
 ```
 
+Provide the backend endpoint and API key when you start Expo so the dashboard can sync BLE samples to Postgres:
+
+```
+EXPO_PUBLIC_HIPPOS_API_BASE=http://localhost:8080 \
+EXPO_PUBLIC_HIPPOS_API_KEY=hippos_dev_key_123 \
+npx expo start --dev-client
+```
+
 ### 4. Connect Your Phone
 
 - Make sure your phone and computer are on the same Wi-Fi network.
