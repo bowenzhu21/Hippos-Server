@@ -14,6 +14,8 @@
         "NSBluetoothAlwaysUsageDescription": "Hippos connects to HX1 sensors over Bluetooth.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,
+          "NSAllowsArbitraryLoadsInWebContent": true,
+          "NSAllowsLocalNetworking": true,
           "NSExceptionDomains": {
             "148.230.87.119": {
               "NSTemporaryExceptionAllowsInsecureHTTPLoads": true,

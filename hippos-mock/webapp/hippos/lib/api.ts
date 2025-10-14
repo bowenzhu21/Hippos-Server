@@ -36,6 +36,9 @@ export async function ingestFlexionSamples(
   }
 
   const url = buildUrl(`/v1/sessions/${sessionId}/flexion-samples`);
+  if (__DEV__) {
+    console.log("Posting flexion samples to", url);
+  }
   const headers = {
     "Content-Type": "application/json",
     "x-api-key": process.env.EXPO_PUBLIC_HIPPOS_API_KEY ?? "",
